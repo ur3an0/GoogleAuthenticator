@@ -10,7 +10,7 @@ namespace Google.Authenticator
     public class TwoFactorAuthenticator
     {
         private static readonly DateTime Epoch = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
-        private static DateTime _now;
+        private readonly bool _useNtp;
 
         // ReSharper disable once MemberCanBePrivate.Global
         public TimeSpan DefaultClockDriftTolerance { get; }
@@ -19,18 +19,18 @@ namespace Google.Authenticator
         // ReSharper disable once MemberCanBePrivate.Global
         public bool TryUnmanagedAlgorithmOnFailure { get; }
 
-        public TwoFactorAuthenticator() : this(true, true)
+        public TwoFactorAuthenticator() : this(true, true, false)
         {
-            _now = NtpConnection.Utc();
         }
 
         // ReSharper disable once MemberCanBePrivate.Global
-        public TwoFactorAuthenticator(bool useManagedSha1, bool useUnmanagedOnFail)
+        public TwoFactorAuthenticator(bool useManagedSha1, bool useUnmanagedOnFail, bool useNtp)
         {
-            _now = NtpConnection.Utc();
-            DefaultClockDriftTolerance = TimeSpan.FromMinutes(5);
+            DefaultClockDriftTolerance = TimeSpan.FromMinutes(1);
             UseManagedSha1Algorithm = useManagedSha1;
             TryUnmanagedAlgorithmOnFailure = useUnmanagedOnFail;
+
+            _useNtp = useNtp;
         }
 
         /// <summary>
@@ -181,7 +181,12 @@ namespace Google.Authenticator
 
         private long GetCurrentCounter()
         {
-            return GetCurrentCounter(_now, Epoch, 30);
+            return GetCurrentCounter(GetNow(), Epoch, 30);
+        }
+
+        private DateTime GetNow()
+        {
+            return _useNtp ? NtpConnection.Utc() : DateTime.UtcNow;
         }
 
         private long GetCurrentCounter(DateTime now, DateTime epoch, int timeStep)
