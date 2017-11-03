@@ -3,12 +3,14 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
+using NtpClient;
 
 namespace Google.Authenticator
 {
     public class TwoFactorAuthenticator
     {
         private static readonly DateTime Epoch = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+        private static DateTime _now;
 
         // ReSharper disable once MemberCanBePrivate.Global
         public TimeSpan DefaultClockDriftTolerance { get; }
@@ -19,11 +21,13 @@ namespace Google.Authenticator
 
         public TwoFactorAuthenticator() : this(true, true)
         {
+            _now = NtpConnection.Utc();
         }
 
         // ReSharper disable once MemberCanBePrivate.Global
         public TwoFactorAuthenticator(bool useManagedSha1, bool useUnmanagedOnFail)
         {
+            _now = NtpConnection.Utc();
             DefaultClockDriftTolerance = TimeSpan.FromMinutes(5);
             UseManagedSha1Algorithm = useManagedSha1;
             TryUnmanagedAlgorithmOnFailure = useUnmanagedOnFail;
@@ -177,7 +181,7 @@ namespace Google.Authenticator
 
         private long GetCurrentCounter()
         {
-            return GetCurrentCounter(DateTime.UtcNow, Epoch, 30);
+            return GetCurrentCounter(_now, Epoch, 30);
         }
 
         private long GetCurrentCounter(DateTime now, DateTime epoch, int timeStep)
